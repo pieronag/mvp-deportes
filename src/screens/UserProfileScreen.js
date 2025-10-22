@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -9,29 +9,23 @@ import {
   StatusBar,
   Alert
 } from 'react-native';
+import { AuthContext } from '../context/AuthContext';
 
-/**
- * Datos de ejemplo del usuario
- */
-const mockUserData = {
-  id: 'user-123',
-  name: 'Juan Pérez',
-  email: 'juan@mvpdeportes.com',
-  joinDate: '2024-01-15',
-  phone: '+56 9 1234 5678',
-  favoriteSport: 'Fútbol',
-  membership: 'MVP Premium'
-};
-
-/**
- * Pantalla de perfil del usuario simplificada
- */
 export default function UserProfileScreen({ navigation, route }) {
-  const [userData, setUserData] = useState(mockUserData);
+  const { user, logout } = useContext(AuthContext);
+  const [userData, setUserData] = useState({
+    id: user?.id || 'user-123',
+    name: user?.name || 'Usuario MVP',
+    email: user?.email || 'usuario@mvpdeportes.com',
+    joinDate: '2024-01-15',
+    phone: '+56 9 1234 5678',
+    favoriteSport: user?.favoriteSport || 'Fútbol',
+    membership: user?.currentLevel || 'MVP Premium',
+    totalReservations: user?.totalReservations || 15,
+    availableTokens: user?.availableTokens || 3,
+    streak: user?.streak || 8
+  });
 
-  /**
-   * Formatea la fecha para mostrar
-   */
   function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
@@ -41,9 +35,6 @@ export default function UserProfileScreen({ navigation, route }) {
     });
   }
 
-  /**
-   * Maneja la edición del perfil
-   */
   const handleEditProfile = () => {
     Alert.alert(
       'Editar Perfil',
@@ -52,9 +43,6 @@ export default function UserProfileScreen({ navigation, route }) {
     );
   };
 
-  /**
-   * Maneja el cierre de sesión
-   */
   const handleLogout = () => {
     Alert.alert(
       'Cerrar Sesión',
@@ -67,7 +55,14 @@ export default function UserProfileScreen({ navigation, route }) {
         {
           text: 'Cerrar Sesión',
           style: 'destructive',
-          onPress: () => navigation.navigate('Login')
+          onPress: async () => {
+            try {
+              await logout();
+              navigation.navigate('Login');
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo cerrar sesión');
+            }
+          }
         }
       ]
     );
@@ -120,6 +115,28 @@ export default function UserProfileScreen({ navigation, route }) {
           >
             <Text style={styles.editButtonText}>✏️ Editar Perfil</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Estadísticas Rápidas */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📊 Mis Estadísticas</Text>
+          
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{userData.totalReservations}</Text>
+              <Text style={styles.statLabel}>Reservas Totales</Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{userData.availableTokens}</Text>
+              <Text style={styles.statLabel}>Tokens Disponibles</Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{userData.streak}</Text>
+              <Text style={styles.statLabel}>Días de Racha</Text>
+            </View>
+          </View>
         </View>
 
         {/* Información de Contacto */}
@@ -196,25 +213,37 @@ export default function UserProfileScreen({ navigation, route }) {
           <Text style={styles.sectionTitle}>⚙️ Configuración</Text>
           
           <View style={styles.settingsList}>
-            <TouchableOpacity style={styles.settingItem}>
+            <TouchableOpacity 
+              style={styles.settingItem}
+              onPress={() => navigation.navigate('NotificationsSettings')}
+            >
               <Text style={styles.settingIcon}>🔔</Text>
               <Text style={styles.settingText}>Notificaciones</Text>
               <Text style={styles.settingArrow}>›</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.settingItem}>
+            <TouchableOpacity 
+              style={styles.settingItem}
+              onPress={() => navigation.navigate('PrivacySettings')}
+            >
               <Text style={styles.settingIcon}>👁️</Text>
               <Text style={styles.settingText}>Privacidad</Text>
               <Text style={styles.settingArrow}>›</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.settingItem}>
+            <TouchableOpacity 
+              style={styles.settingItem}
+              onPress={() => navigation.navigate('PaymentSettings')}
+            >
               <Text style={styles.settingIcon}>💳</Text>
               <Text style={styles.settingText}>Métodos de Pago</Text>
               <Text style={styles.settingArrow}>›</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.settingItem}>
+            <TouchableOpacity 
+              style={styles.settingItem}
+              onPress={() => navigation.navigate('HelpSupport')}
+            >
               <Text style={styles.settingIcon}>❓</Text>
               <Text style={styles.settingText}>Ayuda y Soporte</Text>
               <Text style={styles.settingArrow}>›</Text>
@@ -387,6 +416,25 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 16,
   },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666666',
+    textAlign: 'center',
+  },
   infoList: {
     gap: 16,
   },
@@ -422,6 +470,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E9ECEF',
+  },
+  actionContent: {
+    alignItems: 'center',
   },
   actionIcon: {
     fontSize: 24,

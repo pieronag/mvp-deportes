@@ -1,3 +1,4 @@
+// En src/screens/LoginScreen.js - Simplificado sin Firebase
 import React from 'react';
 import { 
   View, 
@@ -6,108 +7,64 @@ import {
   StyleSheet, 
   SafeAreaView, 
   ActivityIndicator,
-  Platform 
+  Platform,
+  Alert 
 } from 'react-native';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../context/AuthContext';
-
-WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen({ navigation }) {
   const [isLoading, setIsLoading] = React.useState(false);
+  const [googleLoading, setGoogleLoading] = React.useState(false);
   const { loginWithDevData, loginWithGoogle, user } = useAuth();
 
-  const config = {
-    webClientId: '872751327215-4dl00kfn1th69d6nndfppsufnmqsfsd1.apps.googleusercontent.com',
-  };
-
-  if (Platform.OS === 'android') {
-    config.androidClientId = config.webClientId;
-  }
-
-  const [request, response, promptAsync] = Google.useAuthRequest(config);
-
-  React.useEffect(() => {
-    console.log('Google Auth Response:', response);
-    
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      console.log('Login exitoso!');
-      handleGoogleSignIn(authentication.accessToken);
-    } else if (response?.type === 'error') {
-      setIsLoading(false);
-      console.log('Error:', response.error);
-    }
-  }, [response]);
-
-  const handleGoogleSignIn = async (accessToken) => {
+  const handleDevLogin = async () => {
     try {
       setIsLoading(true);
       
-      const result = await loginWithGoogle();
+      // Usar el primer usuario de desarrollo
+      const result = await loginWithDevData('dev@mvpdeportes.com', 'dev123');
       
-      if (result.success) {
-        console.log('Login exitoso con Google');
+      if (result && result.success) {
+        console.log('Sesión de desarrollo iniciada');
+        Alert.alert('Éxito', `Bienvenido ${result.user.name}`);
       } else {
-        console.log('Error en login:', result.error);
+        console.log('Error en login:', result?.error);
+        Alert.alert('Error', result?.error || 'Error desconocido en el login');
       }
       
     } catch (error) {
-      console.log('Error en autenticación:', error.message);
+      console.log('No se pudo iniciar sesión:', error.message);
+      Alert.alert('Error', `No se pudo iniciar sesión: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    if (!request) {
-      console.log('Inicializando Google Auth...');
-      return;
-    }
-
-    setIsLoading(true);
     try {
-      await promptAsync();
-    } catch (error) {
-      console.error('Error:', error);
-      setIsLoading(false);
-    }
-  };
-
-  const handleDevLogin = async () => {
-    try {
-      setIsLoading(true);
+      setGoogleLoading(true);
       
-      const devUserData = {
-        email: 'dev@mvpdeportes.com',
-        name: 'Usuario Desarrollo',
-        totalReservations: 15,
-        currentLevel: 'TITULAR',
-        monthlyTokens: 3,
-        tokensUsed: 1,
-        availableTokens: 2,
-        streak: 8,
-        favoriteSport: 'Fútbol'
-      };
+      const result = await loginWithGoogle();
       
-      const result = await loginWithDevData(devUserData);
-      
-      if (result.success) {
-        console.log('Sesión de desarrollo iniciada');
+      if (result && result.success) {
+        console.log('Login con Google exitoso');
+        Alert.alert('Éxito', `Bienvenido ${result.user.name}`);
       } else {
-        console.log('Error en login:', result.error);
+        console.log('Error en login Google:', result?.error);
+        Alert.alert('Error', result?.error || 'Error en login con Google');
       }
       
     } catch (error) {
-      console.log('No se pudo iniciar sesión:', error.message);
+      console.log('Error en Google login:', error.message);
+      Alert.alert('Error', `Error en Google login: ${error.message}`);
     } finally {
-      setIsLoading(false);
+      setGoogleLoading(false);
     }
   };
 
   React.useEffect(() => {
     if (user) {
+      console.log('Usuario autenticado, navegando a Home...');
       navigation.navigate('Home');
     }
   }, [user, navigation]);
@@ -147,15 +104,15 @@ export default function LoginScreen({ navigation }) {
         <TouchableOpacity 
           style={[
             styles.googleButton, 
-            (isLoading || !request) && styles.googleButtonDisabled
+            googleLoading && styles.googleButtonDisabled
           ]} 
           onPress={handleGoogleLogin}
-          disabled={isLoading || !request}
+          disabled={googleLoading}
         >
-          {isLoading ? (
+          {googleLoading ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text style={styles.googleButtonText}>Continuar con Google</Text>
+            <Text style={styles.googleButtonText}>Continuar con Google (Demo)</Text>
           )}
         </TouchableOpacity>
 
@@ -163,8 +120,11 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.note}>
             Plataforma: {Platform.OS} {Platform.Version}
           </Text>
-          {isLoading && (
-            <Text style={styles.loadingText}>Cargando datos del usuario...</Text>
+          <Text style={styles.note}>
+            Modo: Desarrollo Local
+          </Text>
+          {(isLoading || googleLoading) && (
+            <Text style={styles.loadingText}>Iniciando sesión...</Text>
           )}
         </View>
       </View>
@@ -172,6 +132,7 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
+// Los estilos se mantienen igual...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -275,6 +236,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999999',
     textAlign: 'center',
+    marginBottom: 4,
   },
   loadingText: {
     fontSize: 12,

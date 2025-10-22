@@ -12,6 +12,10 @@ import ActiveReservationsScreen from '../screens/ActiveReservationsScreen';
 import AchievementsScreen from '../screens/AchievementsScreen';
 import LevelScreen from '../screens/LevelScreen'; // NUEVA
 import TokensScreen from '../screens/TokensScreen'; // NUEVA
+import NotificationsSettingsScreen from '../screens/NotificationsSettingsScreen';
+import PrivacySettingsScreen from '../screens/PrivacySettingsScreen';
+import PaymentSettingsScreen from '../screens/PaymentSettingsScreen';
+import HelpSupportScreen from '../screens/HelpSupportScreen';
 
 // Crear el navigator stack
 const Stack = createStackNavigator();
@@ -81,6 +85,27 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="Tokens" 
           component={TokensScreen}
+        />
+
+        <Stack.Screen 
+          name="NotificationsSettings" 
+          component={NotificationsSettingsScreen}
+          options={{ title: 'Notificaciones' }}
+        />
+        <Stack.Screen 
+          name="PrivacySettings" 
+          component={PrivacySettingsScreen}
+          options={{ title: 'Privacidad' }}
+        />
+        <Stack.Screen 
+          name="PaymentSettings" 
+          component={PaymentSettingsScreen}
+          options={{ title: 'Métodos de Pago' }}
+        />
+        <Stack.Screen 
+          name="HelpSupport" 
+          component={HelpSupportScreen}
+          options={{ title: 'Ayuda y Soporte' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
