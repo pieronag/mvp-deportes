@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "872751327215",
+    "project_id": "mvp-plataforma-deportiva",
+    "storage_bucket": "mvp-plataforma-deportiva.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:872751327215:android:0beffe3f397caac637381a",
+        "android_client_info": {
+          "package_name": "com.mvp.deportes"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "872751327215-4dl00kfn1th69d6nndfppsufnmqsfsd1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdwv023kCqLXO8UDxRzlz2kygJiW7F6V8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "872751327215-4dl00kfn1th69d6nndfppsufnmqsfsd1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
