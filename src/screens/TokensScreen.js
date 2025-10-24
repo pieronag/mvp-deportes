@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   View,
   Text,
@@ -9,91 +9,22 @@ import {
   StatusBar,
   Alert
 } from 'react-native';
-
-/**
- * Datos de ejemplo del usuario
- */
-const mockUserData = {
-  name: 'Juan Pérez',
-  monthlyTokens: 3,
-  tokensUsed: 1,
-  availableTokens: 2,
-  totalReservations: 15,
-  currentLevel: 'TITULAR'
-};
-
-/**
- * Packs de tokens disponibles para compra
- */
-const TOKEN_PACKS = [
-  {
-    id: '5',
-    name: 'Pack Básico',
-    tokens: 5,
-    price: 7500,
-    popular: false,
-    savings: '0%',
-    description: 'Perfecto para empezar'
-  },
-  {
-    id: '10',
-    name: 'Pack Pro',
-    tokens: 10,
-    price: 12000,
-    popular: true,
-    savings: '20%',
-    description: 'Más popular - Mejor valor'
-  },
-  {
-    id: '20',
-    name: 'Pack Elite',
-    tokens: 20,
-    price: 20000,
-    popular: false,
-    savings: '33%',
-    description: 'Máximo ahorro'
-  }
-];
+import { AuthContext } from '../context/AuthContext';
 
 /**
  * Pantalla dedicada a tokens y sistema de recompensas
  */
 export default function TokensScreen({ navigation }) {
-  const [userData, setUserData] = useState(mockUserData);
-
-  /**
-   * Maneja la compra de tokens
-   */
-  const handleBuyTokens = (tokenPack) => {
-    Alert.alert(
-      `Comprar ${tokenPack.name}`,
-      `¿Confirmas la compra de ${tokenPack.tokens} tokens por $${tokenPack.price.toLocaleString()}?`,
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel'
-        },
-        {
-          text: 'Comprar',
-          style: 'default',
-          onPress: () => {
-            // Simular compra exitosa
-            const newAvailableTokens = userData.availableTokens + tokenPack.tokens;
-            setUserData(prev => ({
-              ...prev,
-              availableTokens: newAvailableTokens
-            }));
-            
-            Alert.alert(
-              '✅ Compra Exitosa',
-              `Has adquirido ${tokenPack.tokens} tokens. Ahora tienes ${newAvailableTokens} tokens disponibles.`,
-              [{ text: 'Entendido', style: 'default' }]
-            );
-          }
-        }
-      ]
-    );
-  };
+  const { user } = useContext(AuthContext);
+  const [userData, setUserData] = useState({
+    name: user?.name || 'Usuario MVP',
+    monthlyTokens: user?.monthlyTokens || 3,
+    tokensUsed: user?.tokensUsed || 1,
+    availableTokens: user?.availableTokens || 2,
+    totalReservations: user?.totalReservations || 15,
+    currentLevel: user?.currentLevel || 'TITULAR',
+    streak: user?.streak || 8
+  });
 
   /**
    * Calcula el ahorro potencial con tokens
@@ -102,6 +33,33 @@ export default function TokensScreen({ navigation }) {
     const avgPrice = 15000; // Precio promedio por reserva
     const discount = 0.10; // 10% descuento para nivel Titular
     return userData.availableTokens * (avgPrice * discount);
+  };
+
+  /**
+   * Muestra información sobre cómo ganar tokens
+   */
+  const showHowToEarnTokens = () => {
+    Alert.alert(
+      '🎯 Cómo Ganar Más Tokens',
+      'Puedes obtener tokens gratuitos mediante:\n\n• Realizar reservas consistentemente\n• Mantener tu racha de semanas activas\n• Completar desafíos mensuales\n• Invitar amigos a la plataforma\n• Participar en eventos especiales',
+      [{ text: 'Entendido', style: 'default' }]
+    );
+  };
+
+  /**
+   * Muestra el próximo reinicio de tokens
+   */
+  const showNextReset = () => {
+    const today = new Date();
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const options = { day: 'numeric', month: 'long', year: 'numeric' };
+    const resetDate = nextMonth.toLocaleDateString('es-ES', options);
+    
+    Alert.alert(
+      '🔄 Próximo Reinicio',
+      `Tus tokens mensuales se reiniciarán el ${resetDate}\n\nAsegúrate de usar tus tokens disponibles antes de esa fecha.`,
+      [{ text: 'Entendido', style: 'default' }]
+    );
   };
 
   const potentialSavings = calculatePotentialSavings();
@@ -173,55 +131,92 @@ export default function TokensScreen({ navigation }) {
             <Text style={styles.infoItem}>• 1 token = 1 reserva con descuento</Text>
             <Text style={styles.infoItem}>• Descuento según tu nivel (10%-40%)</Text>
             <Text style={styles.infoItem}>• Tokens mensuales se reinician cada mes</Text>
-            <Text style={styles.infoItem}>• Tokens comprados no expiran</Text>
+            <Text style={styles.infoItem}>• Tokens no expiran mientras seas activo</Text>
             <Text style={styles.infoItem}>• Máximo 6 tokens acumulables</Text>
           </View>
         </View>
 
-        {/* Comprar Tokens Adicionales */}
-        <View style={styles.purchaseSection}>
-          <Text style={styles.sectionTitle}>🚀 Comprar Tokens Adicionales</Text>
+        {/* Cómo Ganar Más Tokens */}
+        <View style={styles.earnSection}>
+          <Text style={styles.sectionTitle}>🚀 Cómo Ganar Más Tokens</Text>
           <Text style={styles.sectionSubtitle}>
-            Amplía tus beneficios con tokens extra
+            Obtén tokens gratuitos mediante tu actividad
           </Text>
           
-          <View style={styles.tokenPacks}>
-            {TOKEN_PACKS.map((pack) => (
-              <TouchableOpacity
-                key={pack.id}
-                style={[
-                  styles.tokenPack,
-                  pack.popular && styles.popularPack
-                ]}
-                onPress={() => handleBuyTokens(pack)}
-              >
-                {pack.popular && (
-                  <View style={styles.popularBadge}>
-                    <Text style={styles.popularBadgeText}>MÁS POPULAR</Text>
-                  </View>
-                )}
-                
-                <Text style={styles.packName}>{pack.name}</Text>
-                <Text style={styles.packTokens}>{pack.tokens} Tokens</Text>
-                
-                <View style={styles.packPrice}>
-                  <Text style={styles.priceAmount}>${pack.price.toLocaleString()}</Text>
-                  <Text style={styles.pricePerToken}>
-                    ${(pack.price / pack.tokens).toLocaleString()} por token
-                  </Text>
-                </View>
-                
-                {pack.savings !== '0%' && (
-                  <View style={styles.savingsBadge}>
-                    <Text style={styles.savingsBadgeText}>Ahorras {pack.savings}</Text>
-                  </View>
-                )}
-                
-                <Text style={styles.packDescription}>{pack.description}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.earningMethods}>
+            <View style={styles.earningMethod}>
+              <Text style={styles.earningIcon}>📅</Text>
+              <View style={styles.earningDetails}>
+                <Text style={styles.earningTitle}>Reservas Consistentes</Text>
+                <Text style={styles.earningDescription}>
+                  +1 token por cada 5 reservas mensuales
+                </Text>
+              </View>
+              <View style={styles.earningStatus}>
+                <Text style={styles.earningProgress}>3/5</Text>
+              </View>
+            </View>
+            
+            <View style={styles.earningMethod}>
+              <Text style={styles.earningIcon}>🔥</Text>
+              <View style={styles.earningDetails}>
+                <Text style={styles.earningTitle}>Racha Semanal</Text>
+                <Text style={styles.earningDescription}>
+                  +1 token por 4 semanas consecutivas activas
+                </Text>
+              </View>
+              <View style={styles.earningStatus}>
+                <Text style={styles.earningProgress}>{userData.streak}/4</Text>
+              </View>
+            </View>
+            
+            <View style={styles.earningMethod}>
+              <Text style={styles.earningIcon}>👥</Text>
+              <View style={styles.earningDetails}>
+                <Text style={styles.earningTitle}>Invitar Amigos</Text>
+                <Text style={styles.earningDescription}>
+                  +1 token por cada amigo que se registre
+                </Text>
+              </View>
+              <View style={styles.earningStatus}>
+                <Text style={styles.earningAction}>Invitar</Text>
+              </View>
+            </View>
+            
+            <View style={styles.earningMethod}>
+              <Text style={styles.earningIcon}>🎯</Text>
+              <View style={styles.earningDetails}>
+                <Text style={styles.earningTitle}>Desafíos Mensuales</Text>
+                <Text style={styles.earningDescription}>
+                  Completa desafíos para ganar tokens extra
+                </Text>
+              </View>
+              <View style={styles.earningStatus}>
+                <Text style={styles.earningAction}>Ver</Text>
+              </View>
+            </View>
           </View>
+
+          <TouchableOpacity 
+            style={styles.earnMoreButton}
+            onPress={showHowToEarnTokens}
+          >
+            <Text style={styles.earnMoreButtonText}>📈 Ver Todas las Formas de Ganar Tokens</Text>
+          </TouchableOpacity>
         </View>
+
+        {/* Próximo Reinicio */}
+        <TouchableOpacity 
+          style={styles.resetCard}
+          onPress={showNextReset}
+        >
+          <Text style={styles.resetIcon}>🔄</Text>
+          <View style={styles.resetInfo}>
+            <Text style={styles.resetTitle}>Próximo Reinicio Mensual</Text>
+            <Text style={styles.resetDate}>1 de Abril 2024</Text>
+          </View>
+          <Text style={styles.resetArrow}>›</Text>
+        </TouchableOpacity>
 
         {/* Historial de Tokens */}
         <View style={styles.historySection}>
@@ -229,10 +224,10 @@ export default function TokensScreen({ navigation }) {
           
           <View style={styles.historyList}>
             <View style={styles.historyItem}>
-              <Text style={styles.historyIcon}>🎯</Text>
+              <Text style={styles.historyIcon}>🎁</Text>
               <View style={styles.historyDetails}>
                 <Text style={styles.historyTitle}>Token Mensual</Text>
-                <Text style={styles.historyDate}>1 de Marzo 2024</Text>
+                <Text style={styles.historyDate}>1 de Marzo 2024 - Mensual</Text>
               </View>
               <Text style={styles.historyTokens}>+1</Text>
             </View>
@@ -241,18 +236,27 @@ export default function TokensScreen({ navigation }) {
               <Text style={styles.historyIcon}>⚽</Text>
               <View style={styles.historyDetails}>
                 <Text style={styles.historyTitle}>Reserva Cancha Central</Text>
-                <Text style={styles.historyDate}>15 de Marzo 2024</Text>
+                <Text style={styles.historyDate}>15 de Marzo 2024 - Uso</Text>
               </View>
               <Text style={[styles.historyTokens, styles.usedTokens]}>-1</Text>
             </View>
             
             <View style={styles.historyItem}>
-              <Text style={styles.historyIcon}>🛒</Text>
+              <Text style={styles.historyIcon}>🔥</Text>
               <View style={styles.historyDetails}>
-                <Text style={styles.historyTitle}>Compra Pack Pro</Text>
-                <Text style={styles.historyDate}>10 de Marzo 2024</Text>
+                <Text style={styles.historyTitle}>Racha de 4 Semanas</Text>
+                <Text style={styles.historyDate}>10 de Marzo 2024 - Recompensa</Text>
               </View>
-              <Text style={styles.historyTokens}>+10</Text>
+              <Text style={styles.historyTokens}>+1</Text>
+            </View>
+
+            <View style={styles.historyItem}>
+              <Text style={styles.historyIcon}>📅</Text>
+              <View style={styles.historyDetails}>
+                <Text style={styles.historyTitle}>5 Reservas Mensuales</Text>
+                <Text style={styles.historyDate}>5 de Marzo 2024 - Logro</Text>
+              </View>
+              <Text style={styles.historyTokens}>+1</Text>
             </View>
           </View>
         </View>
@@ -265,25 +269,43 @@ export default function TokensScreen({ navigation }) {
             <View style={styles.faqItem}>
               <Text style={styles.faqQuestion}>¿Los tokens expiran?</Text>
               <Text style={styles.faqAnswer}>
-                Los tokens mensuales expiran al final de cada mes. Los tokens comprados no tienen fecha de expiración.
+                Los tokens mensuales se reinician cada mes. Los tokens por logros y recompensas no expiran mientras mantengas actividad en la plataforma.
               </Text>
             </View>
             
             <View style={styles.faqItem}>
               <Text style={styles.faqQuestion}>¿Puedo transferir tokens?</Text>
               <Text style={styles.faqAnswer}>
-                No, los tokens son personales e intransferibles. Están vinculados a tu cuenta.
+                No, los tokens son personales e intransferibles. Están vinculados a tu cuenta y nivel MVP.
               </Text>
             </View>
             
             <View style={styles.faqItem}>
-              <Text style={styles.faqQuestion}>¿Máximo de tokens?</Text>
+              <Text style={styles.faqQuestion}>¿Máximo de tokens acumulables?</Text>
               <Text style={styles.faqAnswer}>
-                Puedes acumular hasta 6 tokens simultáneamente entre mensuales y comprados.
+                Puedes acumular hasta 6 tokens simultáneamente. Te recomendamos usarlos regularmente para maximizar tus beneficios.
+              </Text>
+            </View>
+
+            <View style={styles.faqItem}>
+              <Text style={styles.faqQuestion}>¿Cómo aumento mis tokens mensuales?</Text>
+              <Text style={styles.faqAnswer}>
+                Subiendo de nivel en el sistema MVP. Cada nivel superior te otorga más tokens mensuales gratuitos.
               </Text>
             </View>
           </View>
         </View>
+
+        {/* CTA para Usar Tokens */}
+        <TouchableOpacity 
+          style={styles.useTokensButton}
+          onPress={() => navigation.navigate('Home')}
+        >
+          <Text style={styles.useTokensButtonText}>🎯 Usar Mis Tokens en una Reserva</Text>
+          <Text style={styles.useTokensButtonSubtext}>
+            Aprovecha tu descuento del {userData.currentLevel === 'TITULAR' ? '10%' : '15%'}
+          </Text>
+        </TouchableOpacity>
 
         {/* Espacio adicional al final */}
         <View style={styles.bottomSpacer} />
@@ -435,7 +457,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     lineHeight: 20,
   },
-  purchaseSection: {
+  earnSection: {
     backgroundColor: '#FFFFFF',
     padding: 20,
     borderRadius: 16,
@@ -457,77 +479,105 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginBottom: 16,
   },
-  tokenPacks: {
+  earningMethods: {
     gap: 12,
+    marginBottom: 16,
   },
-  tokenPack: {
+  earningMethod: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
     backgroundColor: '#F8F9FA',
-    padding: 20,
     borderRadius: 12,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#E9ECEF',
-    position: 'relative',
   },
-  popularPack: {
-    backgroundColor: '#FFF3E0',
-    borderColor: '#FF9800',
-  },
-  popularBadge: {
-    position: 'absolute',
-    top: -10,
-    right: 16,
-    backgroundColor: '#FF9800',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  popularBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  packName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  packTokens: {
-    fontSize: 16,
-    color: '#4CAF50',
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  packPrice: {
-    marginBottom: 8,
-  },
-  priceAmount: {
+  earningIcon: {
     fontSize: 20,
-    fontWeight: 'bold',
+    marginRight: 12,
+    width: 24,
+    textAlign: 'center',
+  },
+  earningDetails: {
+    flex: 1,
+  },
+  earningTitle: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#1A1A1A',
     marginBottom: 4,
   },
-  pricePerToken: {
+  earningDescription: {
     fontSize: 12,
     color: '#666666',
+    lineHeight: 16,
   },
-  savingsBadge: {
+  earningStatus: {
+    alignItems: 'flex-end',
+  },
+  earningProgress: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#4CAF50',
     backgroundColor: '#E8F5E8',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
   },
-  savingsBadgeText: {
-    fontSize: 10,
+  earningAction: {
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#2196F3',
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  packDescription: {
+  earnMoreButton: {
+    backgroundColor: '#FFF3E0',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  earnMoreButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF9800',
+    textAlign: 'center',
+  },
+  resetCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+  },
+  resetIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  resetInfo: {
+    flex: 1,
+  },
+  resetTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  resetDate: {
     fontSize: 12,
     color: '#666666',
-    fontStyle: 'italic',
+  },
+  resetArrow: {
+    fontSize: 18,
+    color: '#666666',
+    fontWeight: 'bold',
   },
   historySection: {
     backgroundColor: '#FFFFFF',
@@ -605,7 +655,30 @@ const styles = StyleSheet.create({
     color: '#666666',
     lineHeight: 18,
   },
+  useTokensButton: {
+    backgroundColor: '#4CAF50',
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  useTokensButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  useTokensButtonSubtext: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    opacity: 0.9,
+  },
   bottomSpacer: {
-    height: 0,
+    height: 20,
   },
 });

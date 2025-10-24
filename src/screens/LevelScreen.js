@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,14 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  StatusBar
+  StatusBar,
+  Animated,
+  Easing
 } from 'react-native';
+import { AuthContext } from '../context/AuthContext';
 
 /**
- * Sistema de niveles MVP 2.0
+ * Sistema de niveles MVP 2.0 - 7 Niveles
  */
 const LEVEL_SYSTEM = {
   CANTERANO: { 
@@ -21,7 +24,13 @@ const LEVEL_SYSTEM = {
     discount: 0, 
     color: '#9E9E9E',
     icon: '🌱',
-    description: 'Estás comenzando tu journey deportivo'
+    description: 'Estás comenzando tu journey deportivo',
+    benefits: [
+      'Acceso a la plataforma MVP',
+      'Reserva básica de canchas',
+      'Soporte por email',
+      'Newsletter deportivo'
+    ]
   },
   TITULAR: { 
     name: 'Titular', 
@@ -31,7 +40,14 @@ const LEVEL_SYSTEM = {
     discount: 10, 
     color: '#4CAF50',
     icon: '⭐',
-    description: 'Eres un jugador constante y confiable'
+    description: 'Eres un jugador constante y confiable',
+    benefits: [
+      '1 token mensual gratuito',
+      '10% de descuento en reservas',
+      'Acceso a todos los deportes',
+      'Recordatorios de reserva',
+      'Soporte prioritario'
+    ]
   },
   CAPITAN: { 
     name: 'Capitán', 
@@ -41,7 +57,14 @@ const LEVEL_SYSTEM = {
     discount: 15, 
     color: '#2196F3',
     icon: '👑',
-    description: 'Lideras y inspires a otros jugadores'
+    description: 'Lideras e inspires a otros jugadores',
+    benefits: [
+      '2 tokens mensuales gratuitos',
+      '15% de descuento en reservas',
+      'Reserva prioritaria 48h antes',
+      'Estadísticas de juego',
+      'Invitaciones a torneos'
+    ]
   },
   ESTRELLA: { 
     name: 'Estrella', 
@@ -51,7 +74,14 @@ const LEVEL_SYSTEM = {
     discount: 20, 
     color: '#FF9800',
     icon: '🌟',
-    description: 'Brillas en cada partido que juegas'
+    description: 'Brillas en cada partido que juegas',
+    benefits: [
+      '3 tokens mensuales gratuitos',
+      '20% de descuento en reservas',
+      'Acceso a horarios premium',
+      'Análisis de rendimiento',
+      'Eventos exclusivos MVP'
+    ]
   },
   MVP: { 
     name: 'MVP', 
@@ -61,7 +91,14 @@ const LEVEL_SYSTEM = {
     discount: 25, 
     color: '#9C27B0',
     icon: '🏆',
-    description: 'Eres el Jugador Más Valioso de la plataforma'
+    description: 'Eres el Jugador Más Valioso de la plataforma',
+    benefits: [
+      '4 tokens mensuales gratuitos',
+      '25% de descuento en reservas',
+      'Reserva instantánea',
+      'Coach virtual incluido',
+      'Soporte VIP 24/7'
+    ]
   },
   CAMPION: { 
     name: 'Campeón', 
@@ -71,7 +108,14 @@ const LEVEL_SYSTEM = {
     discount: 30, 
     color: '#F44336',
     icon: '💎',
-    description: 'Has demostrado excelencia consistente'
+    description: 'Has demostrado excelencia consistente',
+    benefits: [
+      '5 tokens mensuales gratuitos',
+      '30% de descuento en reservas',
+      'Acceso a torneos exclusivos',
+      'Merchandising oficial',
+      'Reconocimiento especial'
+    ]
   },
   BALON_DE_ORO: { 
     name: 'Balón de Oro', 
@@ -80,29 +124,21 @@ const LEVEL_SYSTEM = {
     discount: 40, 
     color: '#FFD700',
     icon: '⚽',
-    description: 'Leyenda viviente del deporte'
+    description: 'Leyenda viviente del deporte',
+    benefits: [
+      '6 tokens mensuales gratuitos',
+      '40% de descuento permanente',
+      'Acceso ilimitado premium',
+      'Eventos privados con atletas',
+      'Status de embajador MVP'
+    ]
   }
 };
 
-/**
- * Datos de ejemplo del usuario
- */
-const mockUserData = {
-  name: 'Juan Pérez',
-  totalReservations: 15,
-  currentLevel: 'TITULAR',
-  streak: 8,
-  favoriteSport: 'Fútbol'
-};
-
-/**
- * Pantalla dedicada al nivel y progreso del usuario
- */
 export default function LevelScreen({ navigation }) {
-  const [userData, setUserData] = useState(mockUserData);
-  
-  const currentLevel = LEVEL_SYSTEM[userData.currentLevel];
-  const nextLevel = getNextLevel(userData.currentLevel);
+  const { user } = useContext(AuthContext);
+  const [progress] = useState(new Animated.Value(0));
+  const [currentLevel, setCurrentLevel] = useState(null);
 
   /**
    * Obtiene el siguiente nivel del usuario
@@ -120,17 +156,48 @@ export default function LevelScreen({ navigation }) {
   /**
    * Calcula el progreso hacia el siguiente nivel
    */
-  function calculateProgress() {
+  function calculateProgress(currentLevel, userReservations) {
+    if (!currentLevel) return 0;
+    
+    const nextLevel = getNextLevel(Object.keys(LEVEL_SYSTEM).find(key => LEVEL_SYSTEM[key].name === currentLevel.name));
     if (!nextLevel) return 100;
     
     const currentMin = currentLevel.min;
     const nextMin = nextLevel.min;
-    const userReservations = userData.totalReservations;
     
     return ((userReservations - currentMin) / (nextMin - currentMin)) * 100;
   }
 
-  const progress = calculateProgress();
+  // Determinar nivel actual del usuario
+  useEffect(() => {
+    if (user) {
+      const userReservations = user.totalReservations || 0;
+      let userLevel = LEVEL_SYSTEM.CANTERANO;
+      
+      // Encontrar el nivel actual basado en reservas
+      Object.values(LEVEL_SYSTEM).forEach(level => {
+        if (userReservations >= level.min) {
+          userLevel = level;
+        }
+      });
+      
+      setCurrentLevel(userLevel);
+      
+      // Animación de progreso
+      const progressValue = Math.min(calculateProgress(userLevel, userReservations) / 100, 1);
+      
+      Animated.timing(progress, {
+        toValue: progressValue,
+        duration: 1500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false
+      }).start();
+    }
+  }, [user]);
+
+  const nextLevel = currentLevel ? getNextLevel(Object.keys(LEVEL_SYSTEM).find(key => LEVEL_SYSTEM[key].name === currentLevel.name)) : null;
+  const userReservations = user?.totalReservations || 0;
+  const progressPercentage = currentLevel ? calculateProgress(currentLevel, userReservations) : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -161,32 +228,38 @@ export default function LevelScreen({ navigation }) {
       >
         
         {/* Tarjeta de Nivel Actual */}
-        <View style={styles.currentLevelCard}>
-          <View style={styles.levelHeader}>
-            <View style={[styles.levelIconContainer, { backgroundColor: currentLevel.color }]}>
-              <Text style={styles.levelIcon}>{currentLevel.icon}</Text>
+        {currentLevel && (
+          <View style={styles.currentLevelCard}>
+            <View style={styles.levelHeader}>
+              <View style={[styles.levelIconContainer, { backgroundColor: currentLevel.color }]}>
+                <Text style={styles.levelIcon}>{currentLevel.icon}</Text>
+              </View>
+              <View style={styles.levelInfo}>
+                <Text style={styles.levelName}>{currentLevel.name}</Text>
+                <Text style={styles.levelDescription}>{currentLevel.description}</Text>
+              </View>
             </View>
-            <View style={styles.levelInfo}>
-              <Text style={styles.levelName}>{currentLevel.name}</Text>
-              <Text style={styles.levelDescription}>{currentLevel.description}</Text>
+            
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{userReservations}</Text>
+                <Text style={styles.statLabel}>Reservas Totales</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{user?.streak || 0}</Text>
+                <Text style={styles.statLabel}>Semanas Activo</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{currentLevel.tokens}</Text>
+                <Text style={styles.statLabel}>Tokens Mensuales</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{currentLevel.discount}%</Text>
+                <Text style={styles.statLabel}>Descuento</Text>
+              </View>
             </View>
           </View>
-          
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userData.totalReservations}</Text>
-              <Text style={styles.statLabel}>Reservas Totales</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userData.streak}</Text>
-              <Text style={styles.statLabel}>Semanas Activo</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{currentLevel.discount}%</Text>
-              <Text style={styles.statLabel}>Descuento</Text>
-            </View>
-          </View>
-        </View>
+        )}
 
         {/* Progreso al Siguiente Nivel */}
         <View style={styles.progressCard}>
@@ -195,17 +268,20 @@ export default function LevelScreen({ navigation }) {
           {nextLevel ? (
             <>
               <View style={styles.progressHeader}>
-                <Text style={styles.currentLevelText}>Nivel {currentLevel.name}</Text>
+                <Text style={styles.currentLevelText}>Nivel {currentLevel?.name}</Text>
                 <Text style={styles.nextLevelText}>Nivel {nextLevel.name}</Text>
               </View>
               
               <View style={styles.progressBar}>
-                <View 
+                <Animated.View 
                   style={[
                     styles.progressFill, 
                     { 
-                      width: `${progress}%`,
-                      backgroundColor: currentLevel.color
+                      width: progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%']
+                      }),
+                      backgroundColor: currentLevel?.color || '#4CAF50'
                     }
                   ]} 
                 />
@@ -213,10 +289,10 @@ export default function LevelScreen({ navigation }) {
               
               <View style={styles.progressStats}>
                 <Text style={styles.progressStat}>
-                  {userData.totalReservations - currentLevel.min} / {nextLevel.min - currentLevel.min}
+                  {userReservations - (currentLevel?.min || 0)} / {nextLevel.min - (currentLevel?.min || 0)}
                 </Text>
                 <Text style={styles.progressStat}>
-                  {nextLevel.min - userData.totalReservations} reservas faltantes
+                  {nextLevel.min - userReservations} reservas faltantes
                 </Text>
               </View>
 
@@ -241,6 +317,22 @@ export default function LevelScreen({ navigation }) {
           )}
         </View>
 
+        {/* Beneficios del Nivel Actual */}
+        {currentLevel && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🎁 Beneficios de {currentLevel.name}</Text>
+            
+            <View style={styles.benefitsList}>
+              {currentLevel.benefits.map((benefit, index) => (
+                <View key={index} style={styles.benefitItem}>
+                  <Text style={styles.benefitIcon}>✓</Text>
+                  <Text style={styles.benefitText}>{benefit}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Todos los Niveles */}
         <View style={styles.allLevelsCard}>
           <Text style={styles.sectionTitle}>📊 Todos los Niveles MVP</Text>
@@ -250,12 +342,12 @@ export default function LevelScreen({ navigation }) {
               key={key} 
               style={[
                 styles.levelRow,
-                key === userData.currentLevel && styles.currentLevelRow
+                currentLevel?.name === level.name && styles.currentLevelRow
               ]}
             >
               <View style={styles.levelIndicator}>
                 <Text style={styles.levelRowIcon}>{level.icon}</Text>
-                {key === userData.currentLevel && (
+                {currentLevel?.name === level.name && (
                   <View style={styles.currentLevelBadge}>
                     <Text style={styles.currentLevelBadgeText}>Actual</Text>
                   </View>
@@ -270,55 +362,16 @@ export default function LevelScreen({ navigation }) {
               </View>
               
               <View style={styles.levelStatus}>
-                {userData.totalReservations >= level.min ? (
+                {userReservations >= level.min ? (
                   <Text style={styles.completedText}>✅ Completado</Text>
                 ) : (
                   <Text style={styles.pendingText}>
-                    {level.min - userData.totalReservations} faltan
+                    {level.min - userReservations} faltan
                   </Text>
                 )}
               </View>
             </View>
           ))}
-        </View>
-
-        {/* Beneficios por Nivel */}
-        <View style={styles.benefitsCard}>
-          <Text style={styles.sectionTitle}>💎 Beneficios por Nivel</Text>
-          
-          <View style={styles.benefitsGrid}>
-            <View style={styles.benefitItem}>
-              <Text style={styles.benefitIcon}>🎫</Text>
-              <Text style={styles.benefitTitle}>Tokens Mensuales</Text>
-              <Text style={styles.benefitDescription}>
-                Más tokens gratuitos cada mes según tu nivel
-              </Text>
-            </View>
-            
-            <View style={styles.benefitItem}>
-              <Text style={styles.benefitIcon}>💰</Text>
-              <Text style={styles.benefitTitle}>Descuentos</Text>
-              <Text style={styles.benefitDescription}>
-                Descuentos progresivos desde 10% hasta 40%
-              </Text>
-            </View>
-            
-            <View style={styles.benefitItem}>
-              <Text style={styles.benefitIcon}>⭐</Text>
-              <Text style={styles.benefitTitle}>Prioridad</Text>
-              <Text style={styles.benefitDescription}>
-                Acceso prioritario a reservas en horarios premium
-              </Text>
-            </View>
-            
-            <View style={styles.benefitItem}>
-              <Text style={styles.benefitIcon}>🏆</Text>
-              <Text style={styles.benefitTitle}>Reconocimiento</Text>
-              <Text style={styles.benefitDescription}>
-                Badges exclusivos y reconocimiento en la plataforma
-              </Text>
-            </View>
-          </View>
         </View>
 
         {/* Consejos para Subir de Nivel */}
@@ -332,6 +385,17 @@ export default function LevelScreen({ navigation }) {
             <Text style={styles.tipItem}>• Mantén tu racha de semanas activas</Text>
           </View>
         </View>
+
+        {/* CTA para Reservar */}
+        <TouchableOpacity 
+          style={styles.reserveButton}
+          onPress={() => navigation.navigate('Home')}
+        >
+          <Text style={styles.reserveButtonText}>🎯 Hacer una Reserva</Text>
+          <Text style={styles.reserveButtonSubtext}>
+            Avanza hacia el siguiente nivel
+          </Text>
+        </TouchableOpacity>
 
         {/* Espacio adicional al final */}
         <View style={styles.bottomSpacer} />
@@ -437,10 +501,13 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
   },
   statItem: {
     alignItems: 'center',
-    flex: 1,
+    width: '48%',
+    padding: 8,
+    marginBottom: 8,
   },
   statNumber: {
     fontSize: 20,
@@ -549,6 +616,37 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  section: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  benefitsList: {
+    gap: 12,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  benefitIcon: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  benefitText: {
+    fontSize: 14,
+    color: '#666666',
+    flex: 1,
+    lineHeight: 20,
+  },
   allLevelsCard: {
     backgroundColor: '#FFFFFF',
     padding: 20,
@@ -572,6 +670,8 @@ const styles = StyleSheet.create({
     marginHorizontal: -16,
     paddingHorizontal: 16,
     borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4CAF50',
   },
   levelIndicator: {
     width: 50,
@@ -622,47 +722,6 @@ const styles = StyleSheet.create({
     color: '#FF9800',
     fontWeight: '500',
   },
-  benefitsCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  benefitsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  benefitItem: {
-    width: '48%',
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  benefitIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  benefitTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  benefitDescription: {
-    fontSize: 11,
-    color: '#666666',
-    textAlign: 'center',
-    lineHeight: 14,
-  },
   tipsCard: {
     backgroundColor: '#FFFFFF',
     padding: 20,
@@ -683,7 +742,30 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 20,
   },
+  reserveButton: {
+    backgroundColor: '#4CAF50',
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  reserveButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  reserveButtonSubtext: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    opacity: 0.9,
+  },
   bottomSpacer: {
-    height: 0,
+    height: 20,
   },
 });

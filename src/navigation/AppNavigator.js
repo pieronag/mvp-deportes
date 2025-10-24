@@ -10,12 +10,14 @@ import ReservationScreen from '../screens/ReservationScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import ActiveReservationsScreen from '../screens/ActiveReservationsScreen';
 import AchievementsScreen from '../screens/AchievementsScreen';
-import LevelScreen from '../screens/LevelScreen'; // NUEVA
-import TokensScreen from '../screens/TokensScreen'; // NUEVA
+import LevelScreen from '../screens/LevelScreen';
+import TokensScreen from '../screens/TokensScreen';
 import NotificationsSettingsScreen from '../screens/NotificationsSettingsScreen';
 import PrivacySettingsScreen from '../screens/PrivacySettingsScreen';
 import PaymentSettingsScreen from '../screens/PaymentSettingsScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
+import PaymentScreen from '../screens/PaymentScreen';
+import ReservationDetailScreen from '../screens/ReservationDetailScreen'; // NUEVA PANTALLA
 
 // Crear el navigator stack
 const Stack = createStackNavigator();
@@ -69,43 +71,63 @@ export default function AppNavigator() {
           component={ActiveReservationsScreen}
         />
         
+        {/* NUEVA: Pantalla de Detalles de Reserva con QR */}
+        <Stack.Screen 
+          name="ReservationDetail" 
+          component={ReservationDetailScreen}
+        />
+        
         {/* Pantalla de Logros */}
         <Stack.Screen 
           name="Achievements" 
           component={AchievementsScreen}
         />
         
-        {/* NUEVA: Pantalla de Nivel */}
+        {/* Pantalla de Nivel */}
         <Stack.Screen 
           name="Level" 
           component={LevelScreen}
         />
         
-        {/* NUEVA: Pantalla de Tokens */}
+        {/* Pantalla de Tokens */}
         <Stack.Screen 
           name="Tokens" 
           component={TokensScreen}
         />
 
+        {/* Pantalla de Configuración de Notificaciones */}
         <Stack.Screen 
           name="NotificationsSettings" 
           component={NotificationsSettingsScreen}
           options={{ title: 'Notificaciones' }}
         />
+        
+        {/* Pantalla de Configuración de Privacidad */}
         <Stack.Screen 
           name="PrivacySettings" 
           component={PrivacySettingsScreen}
           options={{ title: 'Privacidad' }}
         />
+        
+        {/* Pantalla de Configuración de Pagos */}
         <Stack.Screen 
           name="PaymentSettings" 
           component={PaymentSettingsScreen}
           options={{ title: 'Métodos de Pago' }}
         />
+        
+        {/* Pantalla de Ayuda y Soporte */}
         <Stack.Screen 
           name="HelpSupport" 
           component={HelpSupportScreen}
           options={{ title: 'Ayuda y Soporte' }}
+        />
+        
+        {/* Pantalla de Pago */}
+        <Stack.Screen 
+          name="Payment" 
+          component={PaymentScreen}
+          options={{ title: 'Pago' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

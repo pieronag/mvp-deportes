@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Modal,
   Alert
 } from 'react-native';
+import { AuthContext } from '../context/AuthContext';
 
 /**
  * Sistema de niveles MVP 2.0
@@ -25,49 +26,28 @@ const LEVEL_SYSTEM = {
   BALON_DE_ORO: { discount: 40 }
 };
 
-/**
- * Datos de ejemplo del usuario
- */
-const mockUserData = {
-  id: 'user-123',
-  name: 'Juan Pérez',
-  currentLevel: 'TITULAR',
-  monthlyTokens: 3,
-  tokensUsed: 1,
-  availableTokens: 2
-};
-
-/**
- * Pantalla completa del sistema de reservas
- * Permite seleccionar fecha, horario y aplicar tokens de descuento
- */
 export default function ReservationScreen({ route, navigation }) {
+  const { user } = useContext(AuthContext);
+  
   // Obtener parámetros de navegación: establecimiento y categoría seleccionados
   const { establishment, category } = route.params;
   
   // Estados para gestionar la reserva
-  const [selectedDate, setSelectedDate] = useState(new Date()); // Fecha seleccionada
-  const [selectedTime, setSelectedTime] = useState(null); // Horario seleccionado
-  const [useToken, setUseToken] = useState(false); // Si usa token para descuento
-  const [showConfirmation, setShowConfirmation] = useState(false); // Mostrar modal de confirmación
-  const [userData, setUserData] = useState(mockUserData);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedTime, setSelectedTime] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   /**
    * Horarios disponibles para reserva
-   * Divididos en turnos mañana y tarde
    */
   const availableTimes = [
-    // Turno mañana
     '08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00',
-    // Turno tarde
     '14:00 - 15:00', '15:00 - 16:00', '16:00 - 17:00', '17:00 - 18:00',
-    // Turno noche
     '18:00 - 19:00', '19:00 - 20:00', '20:00 - 21:00', '21:00 - 22:00'
   ];
 
   /**
    * Genera los próximos 7 días para selección
-   * Incluye hoy, mañana y los siguientes 5 días
    */
   const nextDays = [
     { date: new Date(), label: 'Hoy', formatted: formatDate(new Date()) },
@@ -79,57 +59,20 @@ export default function ReservationScreen({ route, navigation }) {
     { date: new Date(Date.now() + 518400000), label: getDayName(6), formatted: formatDate(new Date(Date.now() + 518400000)) }
   ];
 
-  /**
-   * Obtiene el nombre del día de la semana
-   * @param {number} dayOffset - Días a agregar desde hoy
-   * @returns {string} - Nombre del día
-   */
   function getDayName(dayOffset) {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const targetDate = new Date(Date.now() + (dayOffset * 86400000));
     return days[targetDate.getDay()];
   }
 
-  /**
-   * Formatea la fecha a string legible
-   * @param {Date} date - Fecha a formatear
-   * @returns {string} - Fecha formateada (DD/MM)
-   */
   function formatDate(date) {
     return `${date.getDate()}/${date.getMonth() + 1}`;
   }
 
-  /**
-   * Maneja la selección de horario
-   * @param {string} time - Horario seleccionado
-   */
   const handleTimeSelect = (time) => {
     setSelectedTime(time);
-    console.log('⏰ Horario seleccionado:', time);
   };
 
-  /**
-   * Maneja el uso de tokens
-   */
-  const handleTokenToggle = () => {
-    if (!useToken && userData.availableTokens === 0) {
-      Alert.alert(
-        'Sin Tokens Disponibles',
-        'No tienes tokens disponibles este mes. Puedes comprar tokens adicionales o esperar al próximo mes.',
-        [
-          { text: 'Comprar Tokens', onPress: () => console.log('Navegar a compra de tokens') },
-          { text: 'Entendido', style: 'cancel' }
-        ]
-      );
-      return;
-    }
-    setUseToken(!useToken);
-  };
-
-  /**
-   * Valida y procede con la reserva
-   * Muestra modal de confirmación si todo está correcto
-   */
   const handleReserve = () => {
     if (!selectedTime) {
       Alert.alert(
@@ -140,112 +83,53 @@ export default function ReservationScreen({ route, navigation }) {
       return;
     }
     
-    if (useToken && userData.availableTokens === 0) {
-      Alert.alert(
-        'Token no disponible',
-        'No puedes usar un token porque no tienes disponibles este mes.',
-        [{ text: 'Entendido', style: 'default' }]
-      );
-      setUseToken(false);
-      return;
-    }
-    
-    console.log('📋 Iniciando proceso de reserva...');
-    console.log('🏢 Establecimiento:', establishment.name);
-    console.log('📅 Fecha:', selectedDate.toLocaleDateString('es-ES'));
-    console.log('⏰ Horario:', selectedTime);
-    console.log('🎫 Usa token:', useToken);
-    console.log('💰 Precio final:', `$${calculateFinalPrice().toLocaleString()}`);
-    console.log('👤 Nivel usuario:', userData.currentLevel);
-    console.log('🎫 Tokens disponibles:', userData.availableTokens);
-    
+    console.log('📋 Mostrando confirmación de reserva...');
     setShowConfirmation(true);
   };
 
   /**
-   * Confirma la reserva definitivamente
-   * Aquí se integraría con Firebase en el futuro
+   * Navega a la pantalla de pago con los datos de la reserva
    */
-  const confirmReservation = () => {
-    // Simular guardado en base de datos
+  const navigateToPayment = () => {
+    // Preparar datos para la pantalla de pago
     const reservationData = {
-      establishment: establishment.name,
-      date: selectedDate,
+      establishmentName: establishment.name,
+      establishmentId: establishment.id,
+      date: selectedDate.toLocaleDateString('es-ES', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
       time: selectedTime,
-      useToken: useToken,
-      finalPrice: calculateFinalPrice(),
-      userLevel: userData.currentLevel,
-      discountApplied: useToken ? LEVEL_SYSTEM[userData.currentLevel].discount : 0,
-      reservationId: 'RSV-' + Date.now(),
-      status: 'confirmed'
+      duration: 60, // 1 hora
+      price: calculateBasePrice(),
+      originalPrice: parseInt(establishment.price.replace(/[$.]/g, '')),
+      userLevel: user?.currentLevel || 'TITULAR',
+      discountPercentage: LEVEL_SYSTEM[user?.currentLevel || 'TITULAR'].discount
     };
+
+    console.log('💳 Navegando a pantalla de pago con datos:', reservationData);
     
-    console.log('✅ Reserva confirmada:', reservationData);
+    // Navegar a la pantalla de pago
+    navigation.navigate('Payment', { 
+      reservationData,
+      category 
+    });
     
-    // Actualizar tokens del usuario si usó uno
-    if (useToken) {
-      setUserData(prev => ({
-        ...prev,
-        tokensUsed: prev.tokensUsed + 1,
-        availableTokens: prev.availableTokens - 1
-      }));
-    }
-    
-    // Cerrar modal
+    // Cerrar modal de confirmación
     setShowConfirmation(false);
-    
-    // Mostrar alerta de éxito
-    Alert.alert(
-      '¡Reserva Confirmada! 🎉',
-      `Tu reserva en ${establishment.name} para ${selectedTime} ha sido confirmada.\n\n` +
-      `📅 ${selectedDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n` +
-      `💰 Precio final: $${calculateFinalPrice().toLocaleString()}\n` +
-      `🎫 ${useToken ? `1 token aplicado (${LEVEL_SYSTEM[userData.currentLevel].discount}% descuento)` : 'Sin uso de tokens'}\n` +
-      `📊 Nivel actual: ${userData.currentLevel}\n\n` +
-      `ID de reserva: ${reservationData.reservationId}`,
-      [
-        {
-          text: 'Volver al Inicio',
-          onPress: () => navigation.navigate('Home')
-        },
-        {
-          text: 'Seguir Explorando',
-          onPress: () => navigation.goBack()
-        }
-      ]
-    );
   };
 
   /**
-   * Calcula el precio final aplicando descuento si usa token
-   * @returns {number} - Precio final
+   * Calcula el precio base
    */
-  const calculateFinalPrice = () => {
-    // Extraer precio base (remover símbolos y convertir a número)
-    const basePrice = parseInt(establishment.price.replace(/[$.]/g, ''));
-    
-    if (useToken) {
-      // Calcular descuento según nivel del usuario
-      const discountPercentage = LEVEL_SYSTEM[userData.currentLevel].discount;
-      // Aplicar descuento
-      return Math.round(basePrice * (1 - discountPercentage / 100));
-    }
-    
-    return basePrice;
+  const calculateBasePrice = () => {
+    return parseInt(establishment.price.replace(/[$.]/g, ''));
   };
 
-  /**
-   * Calcula el ahorro por usar token
-   * @returns {number} - Monto ahorrado
-   */
-  const calculateSavings = () => {
-    const basePrice = parseInt(establishment.price.replace(/[$.]/g, ''));
-    return basePrice - calculateFinalPrice();
-  };
-
-  const finalPrice = calculateFinalPrice();
-  const savings = calculateSavings();
-  const userDiscount = LEVEL_SYSTEM[userData.currentLevel].discount;
+  const basePrice = calculateBasePrice();
+  const userDiscount = LEVEL_SYSTEM[user?.currentLevel || 'TITULAR'].discount;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -257,11 +141,9 @@ export default function ReservationScreen({ route, navigation }) {
         style={styles.header}
         imageStyle={styles.headerImage}
       >
-        {/* Overlay con color de categoría para mejor legibilidad */}
         <View style={[styles.headerOverlay, { backgroundColor: `${category.color}CC` }]} />
         
         <View style={styles.headerContent}>
-          {/* Botón para volver atrás */}
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -269,7 +151,6 @@ export default function ReservationScreen({ route, navigation }) {
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
           
-          {/* Información del establecimiento */}
           <View style={styles.establishmentInfo}>
             <Text style={styles.establishmentName}>{establishment.name}</Text>
             <Text style={styles.establishmentAddress}>{establishment.address}</Text>
@@ -288,12 +169,12 @@ export default function ReservationScreen({ route, navigation }) {
         <View style={styles.userInfoSection}>
           <View style={styles.userLevelBadge}>
             <Text style={styles.userLevelText}>
-              🎯 Nivel {userData.currentLevel} - {userDiscount}% descuento con tokens
+              🎯 Nivel {user?.currentLevel || 'TITULAR'} - {userDiscount}% descuento con tokens
             </Text>
           </View>
           <View style={styles.tokensStatus}>
             <Text style={styles.tokensStatusText}>
-              🎫 Tokens: {userData.availableTokens} disponibles de {userData.monthlyTokens} mensuales
+              🎫 Tokens disponibles: {user?.availableTokens || 0}
             </Text>
           </View>
         </View>
@@ -364,111 +245,58 @@ export default function ReservationScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Sección 3: Opción de token */}
-        <View style={styles.section}>
+        {/* Información de beneficios MVP */}
+        <View style={styles.benefitsSection}>
           <Text style={styles.sectionTitle}>🎫 Tu beneficio MVP</Text>
-          <Text style={styles.sectionSubtitle}>Aprovecha tus tokens para obtener descuentos</Text>
+          <Text style={styles.sectionSubtitle}>Aprovecha tus tokens en el pago</Text>
           
-          <TouchableOpacity 
-            style={[
-              styles.tokenOption,
-              userData.availableTokens === 0 && styles.tokenOptionDisabled
-            ]}
-            onPress={handleTokenToggle}
-            activeOpacity={0.7}
-            disabled={userData.availableTokens === 0}
-          >
-            <View style={[
-              styles.checkbox,
-              useToken && styles.checkboxSelected,
-              userData.availableTokens === 0 && styles.checkboxDisabled
-            ]}>
-              {useToken && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <View style={styles.tokenInfo}>
-              <Text style={[
-                styles.tokenTitle,
-                userData.availableTokens === 0 && styles.tokenTitleDisabled
-              ]}>
-                Usar 1 token para descuento
-              </Text>
-              <Text style={styles.tokenDescription}>
-                Aplica {userDiscount}% de descuento en tu reserva (nivel {userData.currentLevel})
-              </Text>
-              {useToken && (
-                <Text style={styles.tokenSavings}>
-                  ¡Ahorras: ${savings.toLocaleString()}!
-                </Text>
-              )}
-              {userData.availableTokens === 0 && (
-                <Text style={styles.tokenWarning}>
-                  No tienes tokens disponibles este mes
-                </Text>
-              )}
-            </View>
-          </TouchableOpacity>
-          
-          {/* Información de tokens disponibles */}
-          <View style={styles.tokensAvailable}>
-            <Text style={styles.tokensAvailableText}>
-              🎫 Tienes {userData.availableTokens} tokens disponibles (máximo {userData.monthlyTokens} mensuales)
+          <View style={styles.benefitsCard}>
+            <Text style={styles.benefitText}>
+              • Nivel {user?.currentLevel || 'TITULAR'}: {userDiscount}% de descuento con tokens
             </Text>
-            <TouchableOpacity 
-              style={styles.buyTokensLink}
-              onPress={() => console.log('Navegar a compra de tokens')}
-            >
-              <Text style={styles.buyTokensLinkText}>
-                Comprar tokens adicionales →
-              </Text>
-            </TouchableOpacity>
+            <Text style={styles.benefitText}>
+              • Tokens disponibles: {user?.availableTokens || 0}
+            </Text>
+            <Text style={styles.benefitNote}>
+              Podrás aplicar tu token en la siguiente pantalla de pago
+            </Text>
           </View>
         </View>
 
         {/* Resumen de precios */}
         <View style={styles.priceSummary}>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Precio base:</Text>
-            <Text style={styles.priceValue}>{establishment.price}</Text>
+            <Text style={styles.priceLabel}>Precio por 1 hora:</Text>
+            <Text style={styles.priceValue}>${basePrice.toLocaleString()}</Text>
           </View>
-          {useToken && (
-            <>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Descuento ({userDiscount}%):</Text>
-                <Text style={[styles.priceValue, styles.discountText]}>
-                  -${savings.toLocaleString()}
-                </Text>
-              </View>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Token utilizado:</Text>
-                <Text style={styles.priceValue}>🎫 1 token</Text>
-              </View>
-            </>
-          )}
+          
           <View style={[styles.priceRow, styles.finalPriceRow]}>
-            <Text style={styles.finalPriceLabel}>Precio final:</Text>
-            <Text style={styles.finalPriceValue}>${finalPrice.toLocaleString()}</Text>
+            <Text style={styles.finalPriceLabel}>Total a pagar:</Text>
+            <Text style={styles.finalPriceValue}>${basePrice.toLocaleString()}</Text>
           </View>
+          
+          <Text style={styles.priceNote}>
+            * El descuento por token se aplicará en la pantalla de pago
+          </Text>
         </View>
 
         {/* Botón de reserva principal */}
         <TouchableOpacity 
           style={[
             styles.reserveButton,
-            (!selectedTime || (useToken && userData.availableTokens === 0)) && styles.reserveButtonDisabled
+            !selectedTime && styles.reserveButtonDisabled
           ]}
           onPress={handleReserve}
-          disabled={!selectedTime || (useToken && userData.availableTokens === 0)}
+          disabled={!selectedTime}
         >
           <Text style={styles.reserveButtonText}>
             {selectedTime ? 
-              `🎯 Confirmar Reserva - $${finalPrice.toLocaleString()}` : 
+              `💳 Proceder al Pago - $${basePrice.toLocaleString()}` : 
               '⏰ Selecciona un horario primero'}
           </Text>
-          {useToken && (
-            <Text style={styles.reserveButtonSubtext}>
-              Con {userDiscount}% de descuento por tu nivel {userData.currentLevel}
-            </Text>
-          )}
+          <Text style={styles.reserveButtonSubtext}>
+            Podrás aplicar tu token en el siguiente paso
+          </Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -482,7 +310,7 @@ export default function ReservationScreen({ route, navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>✅ Confirmar Reserva</Text>
-            <Text style={styles.modalSubtitle}>Revisa los detalles antes de confirmar</Text>
+            <Text style={styles.modalSubtitle}>Revisa los detalles antes de proceder al pago</Text>
             
             {/* Detalles de la reserva */}
             <View style={styles.reservationDetails}>
@@ -515,29 +343,31 @@ export default function ReservationScreen({ route, navigation }) {
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Nivel:</Text>
-                <Text style={styles.detailValue}>{userData.currentLevel}</Text>
+                <Text style={styles.detailValue}>{user?.currentLevel || 'TITULAR'}</Text>
               </View>
               
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Precio final:</Text>
-                <Text style={styles.detailValue}>${finalPrice.toLocaleString()}</Text>
+                <Text style={styles.detailLabel}>Precio base:</Text>
+                <Text style={styles.detailValue}>${basePrice.toLocaleString()}</Text>
               </View>
-              
-              {useToken && (
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Tokens usados:</Text>
-                  <Text style={styles.detailValue}>
-                    1 🎫 ({userDiscount}% descuento) - ${savings.toLocaleString()} ahorrados
-                  </Text>
-                </View>
-              )}
 
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Tokens restantes:</Text>
+                <Text style={styles.detailLabel}>Tokens disponibles:</Text>
                 <Text style={styles.detailValue}>
-                  {useToken ? userData.availableTokens - 1 : userData.availableTokens} de {userData.monthlyTokens}
+                  {user?.availableTokens || 0} tokens ({userDiscount}% descuento cada uno)
                 </Text>
               </View>
+            </View>
+
+            {/* Información de pago */}
+            <View style={styles.paymentInfo}>
+              <Text style={styles.paymentInfoTitle}>💳 Información de Pago</Text>
+              <Text style={styles.paymentInfoText}>
+                En el siguiente paso podrás:
+                • Aplicar tokens para descuento
+                • Pagar con WebPay de forma segura
+                • Confirmar tu reserva definitiva
+              </Text>
             </View>
 
             {/* Botones de acción del modal */}
@@ -550,9 +380,9 @@ export default function ReservationScreen({ route, navigation }) {
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.confirmButton}
-                onPress={confirmReservation}
+                onPress={navigateToPayment}
               >
-                <Text style={styles.confirmButtonText}>✅ Confirmar</Text>
+                <Text style={styles.confirmButtonText}>💳 Proceder al Pago</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -562,20 +392,17 @@ export default function ReservationScreen({ route, navigation }) {
   );
 }
 
-// Estilos de la pantalla de reservas
+// Estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  // Header con imagen
   header: {
     height: 180,
     justifyContent: 'flex-end',
   },
-  headerImage: {
-    // Estilos para la imagen de fondo
-  },
+  headerImage: {},
   headerOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
@@ -648,7 +475,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  // Sección de información del usuario
   userInfoSection: {
     padding: 16,
     backgroundColor: '#F8F9FA',
@@ -677,7 +503,6 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontWeight: '500',
   },
-  // Secciones del contenido
   section: {
     padding: 20,
     borderBottomWidth: 1,
@@ -694,7 +519,6 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginBottom: 15,
   },
-  // Selector de fechas
   datesScroll: {
     flexDirection: 'row',
   },
@@ -730,7 +554,6 @@ const styles = StyleSheet.create({
   dateDayTextSelected: {
     color: '#FFFFFF',
   },
-  // Grid de horarios
   timesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -759,93 +582,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
-  // Opción de token
-  tokenOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E9ECEF',
+  benefitsSection: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  tokenOptionDisabled: {
-    opacity: 0.6,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#CCCCCC',
-    marginRight: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  checkboxSelected: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  checkboxDisabled: {
-    backgroundColor: '#F0F0F0',
-    borderColor: '#DDDDDD',
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  tokenInfo: {
-    flex: 1,
-  },
-  tokenTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  tokenTitleDisabled: {
-    color: '#999999',
-  },
-  tokenDescription: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
-  },
-  tokenSavings: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  tokenWarning: {
-    fontSize: 12,
-    color: '#F44336',
-    fontStyle: 'italic',
-  },
-  tokensAvailable: {
-    marginTop: 12,
-    padding: 12,
+  benefitsCard: {
     backgroundColor: '#E8F5E8',
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#4CAF50',
   },
-  tokensAvailableText: {
-    fontSize: 13,
+  benefitText: {
+    fontSize: 14,
     color: '#2E7D32',
-    fontWeight: '500',
     marginBottom: 8,
+    fontWeight: '500',
   },
-  buyTokensLink: {
-    alignSelf: 'flex-start',
-  },
-  buyTokensLinkText: {
+  benefitNote: {
     fontSize: 12,
-    color: '#FF9800',
-    fontWeight: '600',
+    color: '#666666',
+    fontStyle: 'italic',
+    marginTop: 8,
   },
-  // Resumen de precios
   priceSummary: {
     padding: 20,
     backgroundColor: '#F8F9FA',
@@ -875,10 +635,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1A1A1A',
   },
-  discountText: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
-  },
   finalPriceLabel: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -889,7 +645,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4CAF50',
   },
-  // Botón de reserva principal
+  priceNote: {
+    fontSize: 12,
+    color: '#666666',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
   reserveButton: {
     margin: 20,
     marginTop: 10,
@@ -920,7 +681,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  // Modal de confirmación
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
@@ -977,6 +737,25 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     flex: 1,
     textAlign: 'right',
+  },
+  paymentInfo: {
+    backgroundColor: '#E3F2FD',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  paymentInfoTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1565C0',
+    marginBottom: 8,
+  },
+  paymentInfoText: {
+    fontSize: 12,
+    color: '#1565C0',
+    lineHeight: 16,
   },
   modalButtons: {
     flexDirection: 'row',

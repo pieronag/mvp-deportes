@@ -15,7 +15,7 @@ import {
 export default function ActiveReservationsScreen({ navigation }) {
   const [activeReservations, setActiveReservations] = useState([
     {
-      id: '1',
+      id: 'RSV-123456',
       establishment: 'Cancha Central Fútbol',
       sport: 'Fútbol',
       date: '2024-03-20',
@@ -23,12 +23,13 @@ export default function ActiveReservationsScreen({ navigation }) {
       players: 10,
       status: 'confirmed',
       countdown: '2h 30m',
-      address: 'Av. Deportiva 123, Rancagua',
+      address: 'Av. Deportiva 123, Rancagua, Región del Libertador Bernardo OHiggins',
       price: 15000,
-      useToken: true
+      useToken: true,
+      establishmentId: 'est-001'
     },
     {
-      id: '2',
+      id: 'RSV-123457',
       establishment: 'Pádel Premium',
       sport: 'Pádel',
       date: '2024-03-21',
@@ -36,12 +37,13 @@ export default function ActiveReservationsScreen({ navigation }) {
       players: 4,
       status: 'confirmed',
       countdown: '1d 2h 30m',
-      address: 'Av. Deportiva 789, Rancagua',
+      address: 'Av. Deportiva 789, Rancagua, Región del Libertador Bernardo OHiggins',
       price: 20000,
-      useToken: false
+      useToken: false,
+      establishmentId: 'est-002'
     },
     {
-      id: '3',
+      id: 'RSV-123458',
       establishment: 'Básquet Arena',
       sport: 'Básquetbol',
       date: '2024-03-22',
@@ -49,9 +51,10 @@ export default function ActiveReservationsScreen({ navigation }) {
       players: 8,
       status: 'pending',
       countdown: '2d 1h 15m',
-      address: 'Calle Deportes 654, Rancagua',
+      address: 'Calle Deportes 654, Rancagua, Región del Libertador Bernardo OHiggins',
       price: 12000,
-      useToken: true
+      useToken: true,
+      establishmentId: 'est-003'
     }
   ]);
 
@@ -80,7 +83,8 @@ export default function ActiveReservationsScreen({ navigation }) {
    */
   const handleViewDetails = (reservation) => {
     console.log('Viendo detalles:', reservation);
-    // Navegar a pantalla de detalles
+    // Navegar a pantalla de detalles con QR
+    navigation.navigate('ReservationDetail', { reservation });
   };
 
   return (

@@ -1,4 +1,4 @@
-// En src/context/AuthContext.js - Sin Firebase
+// En src/context/AuthContext.js - Con función de tokens
 import React, { createContext, useState, useEffect, useContext } from 'react';
 
 export const AuthContext = createContext();
@@ -158,6 +158,51 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // NUEVA FUNCIÓN: Actualizar tokens del usuario
+  const updateUserTokens = async (newTokenCount) => {
+    try {
+      console.log('Actualizando tokens:', newTokenCount);
+      
+      if (user) {
+        const updatedUser = {
+          ...user,
+          availableTokens: newTokenCount,
+          tokensUsed: user.monthlyTokens - newTokenCount
+        };
+        
+        setUser(updatedUser);
+        
+        // Aquí podrías guardar en AsyncStorage si lo usas
+        // await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        console.log('Tokens actualizados exitosamente');
+        return { success: true, user: updatedUser };
+      }
+      
+      return { success: false, error: 'No hay usuario logueado' };
+      
+    } catch (error) {
+      console.error('Error actualizando tokens:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // NUEVA FUNCIÓN: Consumir un token (para usar después del pago)
+  const consumeToken = async () => {
+    try {
+      if (user && user.availableTokens > 0) {
+        const newTokenCount = user.availableTokens - 1;
+        return await updateUserTokens(newTokenCount);
+      }
+      
+      return { success: false, error: 'No hay tokens disponibles' };
+      
+    } catch (error) {
+      console.error('Error consumiendo token:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   const logout = async () => {
     try {
       setUser(null);
@@ -177,7 +222,9 @@ export const AuthProvider = ({ children }) => {
     quickLogin,
     devUsers,
     logout,
-    loading
+    loading,
+    updateUserTokens, // ← NUEVA FUNCIÓN
+    consumeToken      // ← NUEVA FUNCIÓN
   };
 
   return (
